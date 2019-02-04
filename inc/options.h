@@ -3,7 +3,7 @@
 
 #define _GNU_SOURCE
 
-typedef struct kvm_options {
+struct kvm_options {
   char *bz_im;
   char *initrd;
   char *ram;

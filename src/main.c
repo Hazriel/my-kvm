@@ -1,5 +1,6 @@
-#include "kvm_setup.h"
+#include "kvm.h"
 #include "kvm_cpu.h"
+#include "kvm_setup.h"
 #include "options.h"
 
 #include <err.h>
@@ -13,11 +14,12 @@
 int main(int argc, char *argv[])
 {
   struct kvm_options *opts = parse_kvm_options(argc, argv);
-  // check_args(opts, argv);
+  check_args(opts, argv);
 
   int kvm_fd = open_kvm_dev();
   int vm_fd = create_vm(kvm_fd);
   init_kvm(kvm_fd, vm_fd);
+  struct kvm *kvm = init_kvm_struct(kvm_fd, vm_fd, opts);
   struct kvm_cpu *vcpu = create_vcpu(kvm_fd, vm_fd);
 
   while (1) {
