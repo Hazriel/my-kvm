@@ -9,32 +9,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-
-int open_kvm_dev()
-{
-  int fd = open("/dev/kvm", O_RDWR);
-  if (fd < 0)
-    err(1, "unable to open /dev/kvm");
-  return fd;
-}
-
-int create_vm(int kvm_fd)
-{
-  int fd = ioctl(kvm_fd, KVM_CREATE_VM, 0);
-  if (fd < 0)
-    err(1, "unable to create vm");
-  return fd;
-}
-
-int create_vcpu(int vm_fd)
-{
-  int fd = ioctl(vm_fd, KVM_CREATE_VCPU, 0);
-  if (fd == -1)
-    err(1, "couldn't create a vcpu.");
-  return fd;
-}
-
-void* init_useless_code()
+static void* init_useless_code()
 {
   const uint8_t code[] = {
     0xba, 0xf8, 0x03, /* mov $0x3f8, %dx */
@@ -55,4 +30,33 @@ void* init_useless_code()
   memcpy(code_mem, code, sizeof(code));
 
   return code_mem;
+}
+
+void init_kvm(int kvm_fd, int vm_fd) {
+  void *code = init_useless_code();
+  struct kvm_userspace_memory_region region = {
+    .slot = 0,
+    .guest_phys_addr = 0x1000,
+    .memory_size = 0x1000,
+    .userspace_addr = (uint64_t) code
+  };
+  ioctl(vm_fd, KVM_SET_USER_MEMORY_REGION, &region);
+}
+
+int open_kvm_dev()
+{
+  int fd = open("/dev/kvm", O_RDWR);
+  if (fd < 0)
+    err(1, "unable to open /dev/kvm");
+  return fd;
+}
+
+int create_vm(int kvm_fd)
+{
+  int fd = ioctl(kvm_fd, KVM_CREATE_VM, 0);
+  if (fd < 0)
+    errx(1, "unable to create vm");
+  if (ioctl(fd, KVM_SET_TSS_ADDR, 0xfffbd000) == -1)
+    errx(1, "unable to set tss addr");
+  return fd;
 }

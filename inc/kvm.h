@@ -5,13 +5,13 @@ struct kvm {
   int kvm_fd;
   int vm_fd;
   int cpu_cnt;
-  int *cpus;
+  int *vcpus;
   u64 ram_size;
+  const char *initrd_file;
   const char *kernel_filename;
   const char *kernel_cmd_line;
-  const char *initrd_file;
-  const char *rootfs;
-  const char *console;
 }
+
+struct *kvm init_kvm(void);
 
 #endif /* ifndef KVM_H */

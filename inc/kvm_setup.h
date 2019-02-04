@@ -5,7 +5,6 @@
 
 int open_kvm_dev();
 int create_vm(int kvm_fd);
-int create_vcpu(int vm_fd);
-void* init_useless_code();
+void init_kvm(int kvm_fd, int vm_fd);
 
 #endif /* ifndef KVM_SETUP_H */
