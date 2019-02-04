@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <getopt.h>
+#include <err.h>
 #include "options.h"
 
 // Helper functions
@@ -21,10 +25,12 @@ static void print_help(char *bin_name) {
   printf("\t-m ram, --memory ram    Set guest startup RAM to $ram megabytes.\n");
 }
 
-static void print_error_and_exit(int err, char *mes, char *bin) {
+static void clean_error_exit(int err, char *mes, char *bin, kvm_options_t *opts) {
   if (mes != NULL && bin != NULL) {
     fprintf(stderr, "%s: %s\n", bin, mes);
   }
+  if (opts != NULL)
+    free_kvm_options(opts);
   exit(err);
 }
 
@@ -47,8 +53,7 @@ static void get_additional_args(int argc, char *argv[], kvm_options_t *opts) {
     int opt_cnt = argc - optind;
     opts->kernel = malloc((opt_cnt) * sizeof(char*));
     if (opts->kernel == NULL) {
-      free_kvm_options(opts);
-      print_error_and_exit(1, "couldn't allocate memory for kvm options", argv[0]);
+      clean_error_exit(1, "bzImage already specified in args", argv[0], opts);
     }
     for (int i = 0; i < opt_cnt; ++i)
       opts->kernel[i] = NULL;
@@ -56,8 +61,7 @@ static void get_additional_args(int argc, char *argv[], kvm_options_t *opts) {
     while (optind < argc) {
       if (is_bz_image(argv[optind])) {
         if (opts->bz_im != NULL) {
-          free_kvm_options(opts);
-          print_error_and_exit(1, "bzImage already specified in args", argv[0]);
+          clean_error_exit(1, "bzImage already specified in args", argv[0], opts);
         }
         opts->bz_im = argv[optind++];
       } else {
@@ -103,12 +107,25 @@ kvm_options_t* parse_kvm_options(int argc, char *argv[]) {
 
 void check_args(kvm_options_t *opts, char *argv[]) {
   if (opts == NULL) {
-    fprintf(stderr, "%s: no options specified", argv[0]);
-    exit(1);
+    clean_error_exit(1, "no options specified", argv[0], opts);
   }
+
   if (opts->bz_im == NULL) {
-    fprintf(stderr, "%s: no bzImage specified", argv[0]);
-    exit(1);
+    clean_error_exit(1, "no bzImage specified", argv[0], opts);
+  }
+
+  FILE *file = fopen(opts->bz_im, "r+");
+  if (file == NULL) {
+    clean_error_exit(1, "bzImage does not exist", argv[0], opts);
+  }
+  fclose(file);
+
+  if (opts->initrd != NULL) {
+    file = fopen(opts->initrd, "r+");
+    if (file == NULL) {
+      clean_error_exit(1, "initrd does not exist", argv[0], opts);
+    }
+    fclose(file);
   }
 }
 

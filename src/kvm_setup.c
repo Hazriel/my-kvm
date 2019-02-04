@@ -1,5 +1,15 @@
 #include "kvm_setup.h"
 
+#include <err.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <linux/kvm.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+
 int open_kvm_dev()
 {
   int fd = open("/dev/kvm", O_RDWR);

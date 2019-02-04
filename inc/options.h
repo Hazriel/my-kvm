@@ -1,12 +1,6 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include <err.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #define _GNU_SOURCE
 
 typedef struct kvm_options {

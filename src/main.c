@@ -1,24 +1,18 @@
+#include "kvm_setup.h"
+#include "options.h"
+
+#include <err.h>
 #include <inttypes.h>
+#include <linux/kvm.h>
 #include <stdio.h>
 #include <string.h>
 #include <stropts.h>
 #include <sys/mman.h>
 
-#include "kvm_setup.h"
-#include "options.h"
-
 int main(int argc, char *argv[])
 {
   kvm_options_t *opts = parse_kvm_options(argc, argv);
   check_args(opts, argv);
-  printf("bzImage is at %s\n", opts->bz_im);
-  printf("initrd is at %s\n", opts->initrd);
-  printf("ram is at %s\n", opts->ram);
-  if (opts->kernel != NULL) {
-    for (int i = 0; opts->kernel[i] != NULL; ++i)
-      printf("additional arg: %s\n", opts->kernel[i]);
-  }
-  printf("====================================");
 
   int kvm_fd = open_kvm_dev();
   int vm_fd = create_vm(kvm_fd);
