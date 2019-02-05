@@ -18,8 +18,11 @@ int main(int argc, char *argv[])
 
   int kvm_fd = open_kvm_dev();
   int vm_fd = create_vm(kvm_fd);
-  init_kvm(kvm_fd, vm_fd);
   struct kvm *kvm = init_kvm_struct(kvm_fd, vm_fd, opts);
+  if (load_bzimage(kvm) < 0) {
+    errx(1, "error while loading bzImage");
+  }
+
   struct kvm_cpu *vcpu = create_vcpu(kvm_fd, vm_fd);
 
   while (1) {
