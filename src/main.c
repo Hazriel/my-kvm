@@ -23,13 +23,14 @@ int main(int argc, char *argv[])
     errx(1, "error while loading bzImage");
   }
 
-  struct kvm_cpu *vcpu = create_vcpu(kvm_fd, vm_fd);
+  struct kvm_cpu *vcpu = create_vcpu(kvm);
 
   while (1) {
     ioctl(vcpu->fd, KVM_RUN, NULL);
     switch (vcpu->run->exit_reason) {
       case KVM_EXIT_HLT:
         printf("KVM_EXIT_HLT\n");
+        dump_vcpu_registers(vcpu);
         return 0;
       case KVM_EXIT_IO:
         if (vcpu->run->io.size > 0) {
