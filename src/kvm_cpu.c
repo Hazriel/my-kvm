@@ -24,6 +24,36 @@ static int init_vcpu_mem(int kvm_fd, struct kvm_cpu *vcpu) {
   return 0;
 }
 
+static int set_cpuid(struct kvm_cpu *vcpu) {
+  struct {
+    struct kvm_cpuid cpuid;
+    struct kvm_cpuid_entry entries[4];
+  } cpuid_info;
+  cpuid_info.cpuid.nent = 4;
+  cpuid_info.cpuid.entries[0].function = 0;
+  cpuid_info.cpuid.entries[0].eax = 1;
+  cpuid_info.cpuid.entries[0].ebx = 0;
+  cpuid_info.cpuid.entries[0].ecx = 0;
+  cpuid_info.cpuid.entries[0].edx = 0;
+  cpuid_info.cpuid.entries[1].function = 1;
+  cpuid_info.cpuid.entries[1].eax = 0x400;
+  cpuid_info.cpuid.entries[1].ebx = 0;
+  cpuid_info.cpuid.entries[1].ecx = 0;
+  cpuid_info.cpuid.entries[1].edx = 0x701b179;
+  cpuid_info.cpuid.entries[2].function = 0x80000000;
+  cpuid_info.cpuid.entries[2].eax = 0x80000001;
+  cpuid_info.cpuid.entries[2].ebx = 0;
+  cpuid_info.cpuid.entries[2].ecx = 0;
+  cpuid_info.cpuid.entries[2].edx = 0;
+  cpuid_info.cpuid.entries[3].function = 0x80000001;
+  cpuid_info.cpuid.entries[3].eax = 0;
+  cpuid_info.cpuid.entries[3].ebx = 0;
+  cpuid_info.cpuid.entries[3].ecx = 0;
+  cpuid_info.cpuid.entries[3].edx = 0x20100800;
+
+  return ioctl(vcpu->fd, KVM_SET_CPUID2, &cpuid_info.cpuid);
+}
+
 static void init_vcpu_regs(struct kvm_regs *regs) {
   regs->rflags = 0x2;
   regs->rip = BZ_KERNEL_START;
@@ -80,12 +110,17 @@ struct kvm_cpu* create_vcpu(struct kvm *kvm) {
 
   vcpu->fd = fd;
 
-  if (init_vcpu_mem(kvm->kvm_fd, vcpu) == -1) {
+  if (init_vcpu_mem(kvm->kvm_fd, vcpu) < 0) {
     free_vcpu(vcpu);
     return NULL;
   }
 
-  if (init_vcpu_all_regs(kvm, vcpu) == -1) {
+  if (set_cpuid(vcpu) < 0) {
+    free_vcpu(vcpu);
+    return NULL;
+  }
+
+  if (init_vcpu_all_regs(kvm, vcpu) < 0) {
     free_vcpu(vcpu);
     return NULL;
   }

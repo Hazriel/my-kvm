@@ -34,6 +34,8 @@ int main(int argc, char *argv[])
     errx(1, "error while initializing bzImage and initrd");
 
   struct kvm_cpu *vcpu = create_vcpu(kvm);
+  if (!vcpu)
+    errx(1, "error while initializing vcpu");
 
   if (enable_kvm_debug(vcpu) < 0)
     errx(1, "could enable vcpu debug");
