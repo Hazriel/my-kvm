@@ -96,6 +96,13 @@ void free_vcpu(struct kvm_cpu *vcpu) {
   }
 }
 
+static void dump_segment(struct kvm_segment *seg, const char *name) {
+  printf(" %8s    %04hx   %016lx   %08x  %02hhx  %x   %x   %x  %x  %x  %x  %x\n",
+      name, (uint16_t) seg->selector, (uint64_t) seg->base, (uint32_t) seg->limit,
+      (uint8_t) seg->type, seg->present, seg->dpl, seg->db, seg->s, seg->l, seg->g,
+      seg->avl);
+}
+
 void dump_vcpu_registers(struct kvm_cpu *vcpu) {
   unsigned long cr0, cr2, cr3, cr4, cr8,
                 rax, rbx, rcx, rdx, rsi,
@@ -129,4 +136,17 @@ void dump_vcpu_registers(struct kvm_cpu *vcpu) {
   printf(  " ------------------\n");
   printf(" cr0: %016lx  cr2: %016lx   cr3: %016lx\n", cr0, cr2, cr3);
   printf(" cr4: %016lx  cr8: %016lx\n", cr4, cr8);
+
+  printf("\n Segment registers:\n");
+  printf(  " ------------------\n");
+  printf(" %s %s %11s %14s %6s %s %s %s  %s  %s  %s %s\n", "register", "selector",
+      "base", "limit", "type", "pr", "dpl", "db", "s", "l", "g", "avl");
+  dump_segment(&sregs->cs, "cs");
+  dump_segment(&sregs->ss, "ss");
+  dump_segment(&sregs->ds, "ds");
+  dump_segment(&sregs->es, "es");
+  dump_segment(&sregs->fs, "fs");
+  dump_segment(&sregs->gs, "gs");
+  dump_segment(&sregs->tr, "tr");
+  dump_segment(&sregs->ldt, "ldt");
 }
