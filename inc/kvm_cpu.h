@@ -3,8 +3,8 @@
 
 #include "kvm.h"
 
-#define SEG_EXECUTE_READ    0xA
-#define SEG_READ_WRITE      0x2
+#define SEG_READ_WRITE      0x02
+#define SEG_EXECUTE_READ    0x0A
 
 #include <linux/kvm.h>
 
@@ -19,5 +19,6 @@ struct kvm_cpu {
 struct kvm_cpu* create_vcpu(struct kvm *kvm);
 void free_vcpu(struct kvm_cpu *vcpu);
 void dump_vcpu_registers(struct kvm_cpu *vcpu);
+void update_regs(struct kvm_cpu *vcpu);
 
 #endif /* ifndef KVM_CPU_H */

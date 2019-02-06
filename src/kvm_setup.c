@@ -22,7 +22,18 @@ int create_vm(int kvm_fd)
   int fd = ioctl(kvm_fd, KVM_CREATE_VM, 0);
   if (fd < 0)
     errx(1, "unable to create vm");
-  if (ioctl(fd, KVM_SET_TSS_ADDR, 0xfffbd000) == -1)
+  if (ioctl(fd, KVM_SET_TSS_ADDR, 0xffffd000) < 0)
     errx(1, "unable to set tss addr");
+  uint64_t map_addr = 0xffffc000;
+  if (ioctl(fd, KVM_SET_IDENTITY_MAP_ADDR, &map_addr) < 0)
+    errx(1, "unable to set identity map addr");
+  if (ioctl(fd, KVM_CREATE_IRQCHIP) < 0)
+    errx(1, "unable to create irq chip");
   return fd;
+}
+
+int enable_kvm_debug(struct kvm_cpu *cpu) {
+  struct kvm_guest_debug debug;
+  debug.control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP;
+  return ioctl(cpu->fd, KVM_SET_GUEST_DEBUG, &debug);
 }

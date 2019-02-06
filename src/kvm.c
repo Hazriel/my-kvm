@@ -39,19 +39,19 @@ void* guest_real_to_host(struct kvm *kvm, uint16_t sel, uint16_t off) {
   return guest_flat_to_host(kvm, flat);
 }
 
-static void copy_sample_code(struct kvm *kvm) {
-  const uint8_t code[] = {
-    0xba, 0xf8, 0x03, /* mov $0x3f8, %dx */
-    0x00, 0xd8,       /* add %bl, %al */
-    0x04, '0',        /* add $'0', %al */
-    0xee,             /* out %al, (%dx) */
-    0xb0, '\n',       /* mov $'\n', %al */
-    0xee,             /* out %al, (%dx) */
-    0xf4,             /* hlt */
-  };
-
-  memcpy(kvm->mem, code, sizeof(code));
-}
+//static void copy_sample_code(struct kvm *kvm) {
+//  const uint8_t code[] = {
+//    0xba, 0xf8, 0x03, /* mov $0x3f8, %dx */
+//    0x00, 0xd8,       /* add %bl, %al */
+//    0x04, '0',        /* add $'0', %al */
+//    0xee,             /* out %al, (%dx) */
+//    0xb0, '\n',       /* mov $'\n', %al */
+//    0xee,             /* out %al, (%dx) */
+//    0xf4,             /* hlt */
+//  };
+//
+//  memcpy(kvm->mem, code, sizeof(code));
+//}
 
 static int init_kvm_userspace_mem(struct kvm *kvm, size_t size) {
   void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE,
@@ -71,8 +71,6 @@ static int init_kvm_userspace_mem(struct kvm *kvm, size_t size) {
   kvm->mem_size = size;
   kvm->mem = mem;
 
-  // TODO: Remove this
-  copy_sample_code(kvm);
   return 0;
 }
 
@@ -115,7 +113,7 @@ struct kvm* init_kvm_struct(int kvm_fd, int vm_fd, struct kvm_options *opts) {
   strcat(cmd_line, cmd_line_append);
   kvm->kernel_cmd_line = cmd_line;
 
-  // allocate memory region for vm
+  // allocate memory region for vm (2GiB)
   if (init_kvm_userspace_mem(kvm, 1 << 30) < 0) {
     free_kvm_struct(kvm);
     return NULL;
@@ -176,7 +174,7 @@ int load_bzimage(struct kvm *kvm) {
     boot.hdr.setup_sects = 4;
   // read setup
   size_t file_size = (boot.hdr.setup_sects + 1) * 512;
-  char *ptr = guest_real_to_host(kvm, BOOT_LOADER_SELECTOR, 0);
+  char *ptr = guest_flat_to_host(kvm, BOOT_PARAMS_OFFSET);
   if (read_all(bz_fd, ptr, file_size) != file_size)
     return close_error(bz_fd);
   // then read vmlinux
@@ -193,10 +191,10 @@ int load_bzimage(struct kvm *kvm) {
     memset(ptr, 0, boot.hdr.cmdline_size);
     memcpy(ptr, kvm->kernel_cmd_line, cmd_line_size - 1);
   }
-  struct boot_params *guest_boot = guest_real_to_host(kvm, BOOT_LOADER_SELECTOR, 0);
+  struct boot_params *guest_boot = guest_flat_to_host(kvm, BOOT_PARAMS_OFFSET);
   set_boot_params(guest_boot);
 
-  if (load_initrd(kvm, guest_boot) < 0)
+  if (kvm->initrd_file && load_initrd(kvm, guest_boot) < 0)
     return close_error(bz_fd);
   close(bz_fd);
   return 0;

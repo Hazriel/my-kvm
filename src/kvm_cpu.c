@@ -6,23 +6,13 @@
 #include <stropts.h>
 #include <sys/mman.h>
 
-static void set_sreg(struct kvm_segment *seg, uint64_t base, uint32_t limit,
-    uint8_t g, uint8_t pr, uint8_t db, uint16_t sel, uint8_t stype) {
-  seg->base = base;
-  seg->limit = limit;
-  seg->g = g;
-  seg->present = pr;
-  seg->db = db;
-  seg->selector = sel;
-  seg->type = stype;
-}
-
-static void set_sreg_base(struct kvm_segment *seg) {
-  seg->base = 0;
-  seg->limit = 0xffffffff;
-  seg->g = 1;
-  seg->present = 1;
-}
+#define set_segment_selector(Seg, Base, Limit, G, P) \
+  do { \
+    Seg.base = Base; \
+    Seg.limit = Limit; \
+    Seg.g = G; \
+    Seg.present = P; \
+  } while (0)
 
 static int init_vcpu_mem(int kvm_fd, struct kvm_cpu *vcpu) {
   vcpu->mmap_size = ioctl(kvm_fd, KVM_GET_VCPU_MMAP_SIZE, NULL);
@@ -37,21 +27,35 @@ static int init_vcpu_mem(int kvm_fd, struct kvm_cpu *vcpu) {
 static void init_vcpu_regs(struct kvm_regs *regs) {
   regs->rflags = 0x2;
   regs->rip = BZ_KERNEL_START;
-  regs->rsp = 0;
   regs->rbp = 0;
   regs->rdi = 0;
   regs->rbx = 0;
-  regs->rsi = 0x10000;
+  regs->rsi = BOOT_PARAMS_OFFSET;
 }
 
 static void init_vcpu_sregs(struct kvm_sregs *sregs) {
-  set_sreg(&(sregs->cs), 0, 0xffffffff, 1, 1, 1, 0x10, SEG_EXECUTE_READ);
-  set_sreg(&(sregs->ss), 0, 0xffffffff, 1, 1, 1, 0x18, SEG_READ_WRITE);
-  set_sreg(&(sregs->ds), 0, 0xffffffff, 1, 1, 0, 0x18, SEG_READ_WRITE);
-  set_sreg(&(sregs->es), 0, 0xffffffff, 1, 1, 0, 0x18, SEG_READ_WRITE);
-  set_sreg_base(&(sregs->fs));
-  set_sreg_base(&(sregs->gs));
-  sregs->cr0 = 0;
+  set_segment_selector(sregs->cs, 0, ~0, 1, 1);
+  set_segment_selector(sregs->ss, 0, ~0, 1, 1);
+  set_segment_selector(sregs->ds, 0, ~0, 1, 1);
+  set_segment_selector(sregs->es, 0, ~0, 1, 1);
+  set_segment_selector(sregs->fs, 0, ~0, 1, 1);
+  set_segment_selector(sregs->gs, 0, ~0, 1, 1);
+
+  sregs->cs.db = 1;
+  sregs->cs.selector = 0x10;
+  sregs->cs.type = SEG_EXECUTE_READ;
+
+  sregs->ss.db = 1;
+  sregs->ss.selector = 0x18;
+  sregs->ss.type = SEG_READ_WRITE;
+
+  sregs->ds.selector = 0x18;
+  sregs->ds.type = SEG_READ_WRITE;
+
+  sregs->es.selector = 0x18;
+  sregs->es.type = SEG_READ_WRITE;
+
+  sregs->cr0 = 0x1;
 }
 
 static int init_vcpu_all_regs(struct kvm *kvm, struct kvm_cpu *vcpu) {
@@ -109,8 +113,9 @@ void dump_vcpu_registers(struct kvm_cpu *vcpu) {
                 rdi, rbp, r8, r9, r10, r11,
                 r12, r13, r14, r15, rip, rsp,
                 rflags;
-  struct kvm_regs *regs = &(vcpu->regs);
-  struct kvm_sregs *sregs = &(vcpu->sregs);
+  update_regs(vcpu);
+  struct kvm_regs *regs = &vcpu->regs;
+  struct kvm_sregs *sregs = &vcpu->sregs;
   
   rflags = regs->rflags;
   rip = regs->rip; rsp = regs->rsp;
@@ -123,6 +128,7 @@ void dump_vcpu_registers(struct kvm_cpu *vcpu) {
   cr0 = sregs->cr0; cr2 = sregs->cr2; cr3 = sregs->cr3;
   cr4 = sregs->cr4; cr8 = sregs->cr8;
 
+  printf("\n =========================================================== \n");
   printf("\n Registers:\n");
   printf(  " ----------\n");
   printf(" rip: %016lx  rsp: %016lx flags: %016lx\n", rip, rsp, rflags);
@@ -149,4 +155,9 @@ void dump_vcpu_registers(struct kvm_cpu *vcpu) {
   dump_segment(&sregs->gs, "gs");
   dump_segment(&sregs->tr, "tr");
   dump_segment(&sregs->ldt, "ldt");
+}
+
+void update_regs(struct kvm_cpu *vcpu) {
+  ioctl(vcpu->fd, KVM_GET_REGS, &vcpu->regs);
+  ioctl(vcpu->fd, KVM_GET_SREGS, &vcpu->sregs);
 }

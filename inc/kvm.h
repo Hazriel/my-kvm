@@ -8,7 +8,8 @@
 #define LOADFLAG_CAN_USE_HEAP   0x1 << 7
 
 #define BOOT_LOADER_SELECTOR    0x1000
-#define BOOT_CMDLINE_OFFSET     0x20000
+#define BOOT_CMDLINE_OFFSET     0x19000
+#define BOOT_PARAMS_OFFSET       0x20000
 #define BZ_KERNEL_START         0x100000UL
 
 #include "options.h"
@@ -25,7 +26,6 @@ struct kvm {
   size_t mem_size;
   void *mem;
 
-  uint64_t ram_size;
   char *initrd_file;
   char *kernel_filename;
   char *kernel_cmd_line;
