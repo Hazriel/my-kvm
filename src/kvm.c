@@ -39,20 +39,6 @@ void* guest_real_to_host(struct kvm *kvm, uint16_t sel, uint16_t off) {
   return guest_flat_to_host(kvm, flat);
 }
 
-//static void copy_sample_code(struct kvm *kvm) {
-//  const uint8_t code[] = {
-//    0xba, 0xf8, 0x03, /* mov $0x3f8, %dx */
-//    0x00, 0xd8,       /* add %bl, %al */
-//    0x04, '0',        /* add $'0', %al */
-//    0xee,             /* out %al, (%dx) */
-//    0xb0, '\n',       /* mov $'\n', %al */
-//    0xee,             /* out %al, (%dx) */
-//    0xf4,             /* hlt */
-//  };
-//
-//  memcpy(kvm->mem, code, sizeof(code));
-//}
-
 static int init_kvm_userspace_mem(struct kvm *kvm, size_t size) {
   void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE,
       MAP_SHARED | MAP_ANONYMOUS, -1 , 0);
@@ -76,7 +62,8 @@ static int init_kvm_userspace_mem(struct kvm *kvm, size_t size) {
 
 static void set_boot_params(struct boot_params *params) {
   params->hdr.type_of_loader = 0xff;
-  params->hdr.loadflags |= LOADFLAG_CAN_USE_HEAP | LOADFLAG_KEEP_SEGMENT;
+  params->hdr.loadflags |= LOADFLAG_CAN_USE_HEAP | LOADFLAG_KEEP_SEGMENT
+    | LOADFLAG_LOADED_HIGH;
   params->hdr.heap_end_ptr = 0xfe00;
   params->hdr.cmd_line_ptr = BOOT_CMDLINE_OFFSET;
 }
@@ -172,13 +159,17 @@ int load_bzimage(struct kvm *kvm) {
     return close_error(bz_fd);
   if (boot.hdr.setup_sects == 0)
     boot.hdr.setup_sects = 4;
+
   // read setup
   size_t file_size = (boot.hdr.setup_sects + 1) * 512;
-  char *ptr = guest_flat_to_host(kvm, BOOT_PARAMS_OFFSET);
-  if (read_all(bz_fd, ptr, file_size) != file_size)
+  //if (read_all(bz_fd, ptr, file_size) != file_size)
+  //  return close_error(bz_fd);
+  
+  if (lseek(bz_fd, file_size, SEEK_SET) < 0)
     return close_error(bz_fd);
+
   // then read vmlinux
-  ptr = guest_flat_to_host(kvm, BZ_KERNEL_START);
+  char *ptr = guest_flat_to_host(kvm, BZ_KERNEL_START);
   ssize_t vmlinux_size = read_all(bz_fd, ptr, kvm->mem_size - BZ_KERNEL_START);
   if (vmlinux_size < 0)
     return close_error(bz_fd);
@@ -192,6 +183,7 @@ int load_bzimage(struct kvm *kvm) {
     memcpy(ptr, kvm->kernel_cmd_line, cmd_line_size - 1);
   }
   struct boot_params *guest_boot = guest_flat_to_host(kvm, BOOT_PARAMS_OFFSET);
+  guest_boot->hdr = boot.hdr;
   set_boot_params(guest_boot);
 
   if (kvm->initrd_file && load_initrd(kvm, guest_boot) < 0)

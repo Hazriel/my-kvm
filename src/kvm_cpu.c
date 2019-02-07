@@ -51,13 +51,14 @@ static int set_cpuid(struct kvm_cpu *vcpu) {
   cpuid_info.cpuid.entries[3].ecx = 0;
   cpuid_info.cpuid.entries[3].edx = 0x20100800;
 
-  return ioctl(vcpu->fd, KVM_SET_CPUID2, &cpuid_info.cpuid);
+  return ioctl(vcpu->fd, KVM_SET_CPUID, &cpuid_info.cpuid);
 }
 
 static void init_vcpu_regs(struct kvm_regs *regs) {
   regs->rflags = 0x2;
   regs->rip = BZ_KERNEL_START;
   regs->rbp = 0;
+  regs->rsp = 0;
   regs->rdi = 0;
   regs->rbx = 0;
   regs->rsi = BOOT_PARAMS_OFFSET;
@@ -85,7 +86,7 @@ static void init_vcpu_sregs(struct kvm_sregs *sregs) {
   sregs->es.selector = 0x18;
   sregs->es.type = SEG_READ_WRITE;
 
-  sregs->cr0 = 0x1;
+  sregs->cr0 |= 0x1;
 }
 
 static int init_vcpu_all_regs(struct kvm *kvm, struct kvm_cpu *vcpu) {
