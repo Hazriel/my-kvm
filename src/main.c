@@ -1,3 +1,4 @@
+#include "io.h"
 #include "kvm.h"
 #include "kvm_cpu.h"
 #include "kvm_setup.h"
@@ -10,14 +11,6 @@
 #include <string.h>
 #include <stropts.h>
 #include <sys/mman.h>
-
-static void dump_io(struct kvm_cpu *vcpu) {
-  printf("io.direction: %s\n", (vcpu->run->io.direction == KVM_EXIT_IO_IN ? "IN" : "OUT"));
-  printf("io.size: %d\n", vcpu->run->io.size);
-  printf("io.port: %04x\n", vcpu->run->io.port);
-  printf("io.count: %d\n", vcpu->run->io.count);
-  printf("io.data_offset: %llx\n", vcpu->run->io.data_offset);
-}
 
 int main(int argc, char *argv[])
 {
@@ -39,6 +32,8 @@ int main(int argc, char *argv[])
 
   //if (enable_kvm_debug(vcpu) < 0)
   //  errx(1, "could enable vcpu debug");
+  
+  struct uart_registers uart;
 
   while (1) {
     ioctl(vcpu->fd, KVM_RUN, NULL);
@@ -48,22 +43,7 @@ int main(int argc, char *argv[])
         dump_vcpu_registers(vcpu);
         return 0;
       case KVM_EXIT_IO:
-        if (vcpu->run->io.port == 0x3fd
-            && vcpu->run->io.direction == KVM_EXIT_IO_IN) {
-          // write 0x20 at data_offset
-          uint8_t *ptr = ((uint8_t *) vcpu->run) + vcpu->run->io.data_offset;
-          *ptr = 0x20;
-        } else if (vcpu->run->io.port == 0x3f8
-                   && vcpu->run->io.direction == KVM_EXIT_IO_OUT
-                   && vcpu->run->io.size > 0) {
-          // read character from mem and print it
-          for (size_t i = 0; i < vcpu->run->io.size; ++i) {
-            putchar(*(((char *) vcpu->run) + vcpu->run->io.data_offset + i));
-          }
-        } 
-        ///else {
-        ///  dump_io(vcpu);
-        ///}
+        handle_kvm_io(vcpu->run, &uart);
         break;
       case KVM_EXIT_FAIL_ENTRY:
         errx(1, "KVM_EXIT_FAIL_ENTRY: hardware_entry_failure_reason = 0x%llx",

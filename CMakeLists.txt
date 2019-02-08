@@ -8,6 +8,7 @@ include_directories(inc/)
 
 add_executable(my-kvm
   src/main.c
+  src/io.c
   src/kvm_setup.c
   src/options.c
   src/kvm_cpu.c
