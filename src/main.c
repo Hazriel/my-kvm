@@ -37,8 +37,8 @@ int main(int argc, char *argv[])
   if (!vcpu)
     errx(1, "error while initializing vcpu");
 
-  if (enable_kvm_debug(vcpu) < 0)
-    errx(1, "could enable vcpu debug");
+  //if (enable_kvm_debug(vcpu) < 0)
+  //  errx(1, "could enable vcpu debug");
 
   while (1) {
     ioctl(vcpu->fd, KVM_RUN, NULL);
@@ -60,7 +60,10 @@ int main(int argc, char *argv[])
           for (size_t i = 0; i < vcpu->run->io.size; ++i) {
             putchar(*(((char *) vcpu->run) + vcpu->run->io.data_offset + i));
           }
-        }
+        } 
+        ///else {
+        ///  dump_io(vcpu);
+        ///}
         break;
       case KVM_EXIT_FAIL_ENTRY:
         errx(1, "KVM_EXIT_FAIL_ENTRY: hardware_entry_failure_reason = 0x%llx",

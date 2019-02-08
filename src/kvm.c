@@ -41,7 +41,7 @@ void* guest_real_to_host(struct kvm *kvm, uint16_t sel, uint16_t off) {
 
 static int init_kvm_userspace_mem(struct kvm *kvm, size_t size) {
   void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE,
-      MAP_SHARED | MAP_ANONYMOUS, -1 , 0);
+      MAP_SHARED | MAP_ANONYMOUS | MAP_NORESERVE, -1 , 0);
   if (mem == MAP_FAILED)
     return -1;
   struct kvm_userspace_memory_region region = {
@@ -101,7 +101,7 @@ struct kvm* init_kvm_struct(int kvm_fd, int vm_fd, struct kvm_options *opts) {
   kvm->kernel_cmd_line = cmd_line;
 
   // allocate memory region for vm (2GiB)
-  if (init_kvm_userspace_mem(kvm, 1 << 30) < 0) {
+  if (init_kvm_userspace_mem(kvm, ((uint64_t)0x1) << 28) < 0) {
     free_kvm_struct(kvm);
     return NULL;
   }
@@ -142,6 +142,26 @@ static int load_initrd(struct kvm *kvm, struct boot_params *boot) {
     return close_error(fd);
   boot->hdr.ramdisk_image = addr;
   boot->hdr.ramdisk_size = stat.st_size;
+  return 0;
+}
+
+static int add_available_memory_region(struct kvm *kvm, struct boot_params *boot) {
+  struct boot_e820_entry entry;
+  struct boot_e820_entry *entry_table = boot->e820_table;
+
+  entry.addr = 0x0;
+  entry.size = BZ_KERNEL_START - 1;
+  entry.type = 1;
+
+  entry_table[0] = entry;
+
+  entry.addr = BZ_KERNEL_START;
+  entry.size = kvm->mem_size - BZ_KERNEL_START;
+  entry.type = 1;
+
+  entry_table[1] = entry;
+  boot->e820_entries = 2;
+
   return 0;
 }
 
@@ -187,6 +207,9 @@ int load_bzimage(struct kvm *kvm) {
   set_boot_params(guest_boot);
 
   if (kvm->initrd_file && load_initrd(kvm, guest_boot) < 0)
+    return close_error(bz_fd);
+
+  if (add_available_memory_region(kvm, guest_boot) < 0)
     return close_error(bz_fd);
   close(bz_fd);
   return 0;

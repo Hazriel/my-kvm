@@ -9,7 +9,7 @@
 
 #define BOOT_LOADER_SELECTOR    0x1000
 #define BOOT_CMDLINE_OFFSET     0x19000
-#define BOOT_PARAMS_OFFSET       0x20000
+#define BOOT_PARAMS_OFFSET      0x20000
 #define BZ_KERNEL_START         0x100000UL
 
 #include "options.h"

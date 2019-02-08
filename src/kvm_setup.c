@@ -29,6 +29,12 @@ int create_vm(int kvm_fd)
     errx(1, "unable to set identity map addr");
   if (ioctl(fd, KVM_CREATE_IRQCHIP) < 0)
     errx(1, "unable to create irq chip");
+
+  struct kvm_pit_config pit = {
+    .flags = KVM_PIT_SPEAKER_DUMMY
+  };
+  if (ioctl(fd, KVM_CREATE_PIT2, &pit) < 0)
+    errx(1, "unable to create pit config");
   return fd;
 }
 

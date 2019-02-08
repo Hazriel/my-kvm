@@ -31,20 +31,6 @@ static void clean_error_exit(int err, char *mes, struct kvm_options *opts) {
   errx(err, "%s", mes);
 }
 
-/**
- * Here if we find that the argument contains an equal sign, then it is an
- * argument to be passed to the kernel. If not then it is the bzImage.
- */
-static int is_bz_image(char *arg) {
-  if (arg == NULL)
-    return 0;
-  for (int i = 0; arg[i] != 0; ++i) {
-    if (arg[i] == '=')
-      return 0;
-  }
-  return 1;
-}
-
 static void get_additional_args(int argc, char *argv[], struct kvm_options *opts) {
   if (optind < argc) {
     int opt_cnt = argc - optind;
@@ -56,10 +42,7 @@ static void get_additional_args(int argc, char *argv[], struct kvm_options *opts
       opts->kernel[i] = NULL;
     int i = 0;
     while (optind < argc) {
-      if (is_bz_image(argv[optind])) {
-        if (opts->bz_im != NULL) {
-          clean_error_exit(1, "bzImage already specified in args", opts);
-        }
+      if (opts->bz_im == NULL) {
         opts->bz_im = argv[optind++];
       } else {
         opts->kernel[i++] = argv[optind++];
