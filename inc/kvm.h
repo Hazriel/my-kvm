@@ -34,6 +34,5 @@ struct kvm {
 int load_bzimage(struct kvm *kvm);
 struct kvm* init_kvm_struct(int kvm_fd, int vm_fd, struct kvm_options *opts);
 void free_kvm_struct(struct kvm *kvm);
-void* guest_real_to_host(struct kvm *kvm, uint16_t sel, uint16_t off);
 
 #endif /* ifndef KVM_H */

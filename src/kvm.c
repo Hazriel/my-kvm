@@ -34,11 +34,6 @@ static void* guest_flat_to_host(struct kvm *kvm, uint64_t off) {
   return ((char *) kvm->mem) + off;
 }
 
-void* guest_real_to_host(struct kvm *kvm, uint16_t sel, uint16_t off) {
-  unsigned long flat = ((uint32_t) sel << 4) + off;
-  return guest_flat_to_host(kvm, flat);
-}
-
 static int init_kvm_userspace_mem(struct kvm *kvm, size_t size) {
   void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE,
       MAP_SHARED | MAP_ANONYMOUS | MAP_NORESERVE, -1 , 0);
