@@ -37,8 +37,10 @@ static void* guest_flat_to_host(struct kvm *kvm, uint64_t off) {
 static int init_kvm_userspace_mem(struct kvm *kvm, size_t size) {
   void *mem = mmap(NULL, size, PROT_READ | PROT_WRITE,
       MAP_SHARED | MAP_ANONYMOUS | MAP_NORESERVE, -1 , 0);
-  if (mem == MAP_FAILED)
+  if (mem == MAP_FAILED) {
+    fprintf(stderr, "my-kvm: could allocate memory for kvm userspace.\n");
     return -1;
+  }
   struct kvm_userspace_memory_region region = {
     .slot = 0,
     .guest_phys_addr = 0,
@@ -123,8 +125,10 @@ static int load_initrd(struct kvm *kvm, struct boot_params *boot) {
     return close_error(fd);
   unsigned long addr = boot->hdr.initrd_addr_max & ~0xfffff;
   while (1) {
-    if (addr < BZ_KERNEL_START)
+    if (addr < BZ_KERNEL_START) {
+      fprintf(stderr, "./my-kvm: not enough memory to load initrd.\n");
       return close_error(fd);
+    }
     else if (addr < (kvm->mem_size - stat.st_size))
       break;
     addr -= 0x100000;

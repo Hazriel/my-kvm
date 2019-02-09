@@ -75,7 +75,7 @@ static size_t get_ram_size(char *ram) {
     } else {
       unit = ram[i];
       if (ram[i + 1] != 0) {
-        fprintf(stderr, "./my-kvm: invalid unit for ram size.\n");
+        fprintf(stderr, "my-kvm: invalid unit for ram size.\n");
         return 0;
       }
     }
@@ -83,7 +83,7 @@ static size_t get_ram_size(char *ram) {
   // Now get the number as an int
   int res = atoi(nb_buf);
   if (res < 0) {
-    fprintf(stderr, "./my-kvm: ram can not be a negative value.\n");
+    fprintf(stderr, "my-kvm: ram can not be a negative value.\n");
     return 0;
   }
 
@@ -95,10 +95,8 @@ static size_t get_ram_size(char *ram) {
       return ram_times_unit(res, UNIT_G);
     case 'M':
       return ram_times_unit(res, UNIT_M);
-    case 'K':
-      return ram_times_unit(res, UNIT_K);
     default:
-      fprintf(stderr, "./my-kvm: invalid unit for ram size.\n");
+      fprintf(stderr, "my-kvm: invalid unit for ram size.\n");
       return 0;
   }
 }
