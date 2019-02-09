@@ -91,8 +91,7 @@ struct kvm* init_kvm_struct(int kvm_fd, int vm_fd, struct kvm_options *opts) {
 
   kvm->kernel_cmd_line = cmd_line;
 
-  // allocate memory region for vm (2GiB)
-  if (init_kvm_userspace_mem(kvm, ((uint64_t)0x1) << 28) < 0) {
+  if (init_kvm_userspace_mem(kvm, opts->ram_size) < 0) {
     free_kvm_struct(kvm);
     return NULL;
   }

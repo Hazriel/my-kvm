@@ -1,8 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <err.h>
 #include "options.h"
+
+#include <err.h>
+#include <getopt.h>
+#include <stdio.h>
+#include <string.h>
 
 // Helper functions
 
@@ -12,7 +13,7 @@ static struct kvm_options* init_kvm_options() {
     errx(1, "couldn't allocate memory for kvm options");
   opt->bz_im = NULL;
   opt->initrd = NULL;
-  opt->ram = NULL;
+  opt->ram_size = 0;
   opt->kernel = NULL;
   return opt;
 }
@@ -51,6 +52,57 @@ static void get_additional_args(int argc, char *argv[], struct kvm_options *opts
   }
 }
 
+static size_t ram_times_unit(size_t nb, size_t unit) {
+  return nb * unit;
+}
+
+/*
+ * Parse the string passed in argument and returns the size of the ram
+ * in bytes. If there is an error, return 0 as a VM with 0 bytes of ram
+ * makes no sense.
+ */
+static size_t get_ram_size(char *ram) {
+  if (!ram)
+    return 0;
+  char unit = 0;
+  char nb_buf[128] = { 0 };
+  // Consider that if the string is greater than 128 digits, it is an error
+  if (strlen(ram) > sizeof(nb_buf))
+    return 0;
+  for (size_t i = 0; ram[i] != 0; ++i) {
+    if (ram[i] >= '0' && ram[i] <= '9') {
+      nb_buf[i] = ram[i];
+    } else {
+      unit = ram[i];
+      if (ram[i + 1] != 0) {
+        fprintf(stderr, "./my-kvm: invalid unit for ram size.\n");
+        return 0;
+      }
+    }
+  }
+  // Now get the number as an int
+  int res = atoi(nb_buf);
+  if (res < 0) {
+    fprintf(stderr, "./my-kvm: ram can not be a negative value.\n");
+    return 0;
+  }
+
+  if (!unit)
+    return res;
+
+  switch (unit) {
+    case 'G':
+      return ram_times_unit(res, UNIT_G);
+    case 'M':
+      return ram_times_unit(res, UNIT_M);
+    case 'K':
+      return ram_times_unit(res, UNIT_K);
+    default:
+      fprintf(stderr, "./my-kvm: invalid unit for ram size.\n");
+      return 0;
+  }
+}
+
 struct kvm_options* parse_kvm_options(int argc, char *argv[]) {
   struct kvm_options *opts = init_kvm_options();
 
@@ -73,12 +125,17 @@ struct kvm_options* parse_kvm_options(int argc, char *argv[]) {
         opts->initrd = optarg;
         break;
       case 'm':
-        opts->ram = optarg;
+        opts->ram_size = get_ram_size(optarg);
+        if (opts->ram_size == 0)
+          clean_error_exit(1, "error specifying ram size", opts);
         break;
       case '?':
         clean_error_exit(1, "unknown option", opts);
     }
   }
+
+  if (opts->ram_size == 0)
+    opts->ram_size = DEFAULT_RAM_SIZE;
 
   get_additional_args(argc, argv, opts);
 

@@ -3,11 +3,19 @@
 
 #define _GNU_SOURCE
 
+#include <stdlib.h>
+
+#define UNIT_G  1 << 30
+#define UNIT_M  1 << 20
+#define UNIT_K  1 << 10
+
+#define DEFAULT_RAM_SIZE UNIT_G
+
 struct kvm_options {
   char *bz_im;
   char *initrd;
-  char *ram;
   char **kernel;
+  size_t ram_size;
 };
 
 /**
