@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
       case KVM_EXIT_HLT:
         printf("KVM_EXIT_HLT\n");
         dump_vcpu_registers(vcpu);
+        free_kvm_struct(kvm);
         return 0;
       case KVM_EXIT_IO:
         handle_kvm_io(vcpu->run, &uart);
@@ -57,6 +58,7 @@ int main(int argc, char *argv[])
       case KVM_EXIT_SHUTDOWN:
         dump_vcpu_registers(vcpu);
         printf("KVM_EXIT_SHUTDOWN\n");
+        free_kvm_struct(kvm);
         return 1;
       default:
         printf("Unhandle exit reason: %d\n", vcpu->run->exit_reason);

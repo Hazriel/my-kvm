@@ -112,6 +112,8 @@ struct kvm* init_kvm_struct(int kvm_fd, int vm_fd, struct kvm_options *opts) {
 void free_kvm_struct(struct kvm *kvm) {
   if (kvm->kernel_cmd_line != NULL)
     free(kvm->kernel_cmd_line);
+  if (kvm->mem && kvm->mem_size > 0)
+    munmap(kvm->mem, kvm->mem_size);
   free(kvm);
 }
 
