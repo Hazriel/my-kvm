@@ -68,8 +68,6 @@ static void set_boot_params(struct boot_params *params) {
   params->hdr.cmd_line_ptr = BOOT_CMDLINE_OFFSET;
 }
 
-static const char cmd_line_append[] = " earlyprintk=serial";
-
 struct kvm* init_kvm_struct(int kvm_fd, int vm_fd, struct kvm_options *opts) {
   struct kvm *kvm = malloc(sizeof(struct kvm));
   if (!kvm)
@@ -79,13 +77,11 @@ struct kvm* init_kvm_struct(int kvm_fd, int vm_fd, struct kvm_options *opts) {
   kvm->initrd_file = opts->initrd;
   kvm->kernel_filename = opts->bz_im;
 
-  // TODO: append 'earlyprintk=serial' to cmdline
   int cmd_line_len = 0;
   for (int i = 0; opts->kernel[i] != NULL; ++i) {
     cmd_line_len += strlen(opts->kernel[i]);
     cmd_line_len++; // size for space between each word
   }
-  cmd_line_len += sizeof(cmd_line_append);
   char *cmd_line = calloc(cmd_line_len, sizeof(char));
   if (!cmd_line) {
     free_kvm_struct(kvm);
@@ -97,7 +93,7 @@ struct kvm* init_kvm_struct(int kvm_fd, int vm_fd, struct kvm_options *opts) {
     if (opts->kernel[i + 1] != NULL)
       cmd_line = strcat(cmd_line, " ");
   }
-  strcat(cmd_line, cmd_line_append);
+
   kvm->kernel_cmd_line = cmd_line;
 
   // allocate memory region for vm (2GiB)
@@ -182,11 +178,8 @@ int load_bzimage(struct kvm *kvm) {
   if (boot.hdr.setup_sects == 0)
     boot.hdr.setup_sects = 4;
 
-  // read setup
   size_t file_size = (boot.hdr.setup_sects + 1) * 512;
-  //if (read_all(bz_fd, ptr, file_size) != file_size)
-  //  return close_error(bz_fd);
-  
+
   if (lseek(bz_fd, file_size, SEEK_SET) < 0)
     return close_error(bz_fd);
 
@@ -195,6 +188,7 @@ int load_bzimage(struct kvm *kvm) {
   ssize_t vmlinux_size = read_all(bz_fd, ptr, kvm->mem_size - BZ_KERNEL_START);
   if (vmlinux_size < 0)
     return close_error(bz_fd);
+
   // copy the kernel cmd line
   ptr = guest_flat_to_host(kvm, BOOT_CMDLINE_OFFSET);
   if (kvm->kernel_cmd_line) {
