@@ -1,0 +1,8 @@
+# TODO
+
+- Add more tests
+- Add more memory allocation support through option "-m".
+- Improve error checking, display and clean exit.
+- Add command input once the shell is prompted.
+- Handle interrupts.
+- Emulate devices.
