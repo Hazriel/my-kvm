@@ -27,9 +27,9 @@ struct kvm_options* parse_kvm_options(int argc, char *argv[]);
 
 /**
  * Checks the arguments in the struct kvm_options.
- * Exits the program with an error code of 1 if arguments are invalid.
+ * return -1 if options are invalid, 0 else
  */
-void check_args(struct kvm_options *opts, char *argv[]);
+int check_args(struct kvm_options *opts, char *argv[]);
 
 void free_kvm_options(struct kvm_options *opt);
 

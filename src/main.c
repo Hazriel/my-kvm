@@ -15,9 +15,15 @@
 int main(int argc, char *argv[])
 {
   struct kvm_options *opts = parse_kvm_options(argc, argv);
-  check_args(opts, argv);
+  if (!opts)
+    return 1;
+  if (check_args(opts, argv) < 0) {
+    free_kvm_options(opts);
+    return 1;
+  }
   int kvm_fd = open_kvm_dev();
   int vm_fd = create_vm(kvm_fd);
+
   struct kvm *kvm = init_kvm_struct(kvm_fd, vm_fd, opts);
 
   if (kvm == NULL)
@@ -30,9 +36,6 @@ int main(int argc, char *argv[])
   if (!vcpu)
     errx(1, "error while initializing vcpu");
 
-  //if (enable_kvm_debug(vcpu) < 0)
-  //  errx(1, "could enable vcpu debug");
-  
   struct uart_registers uart;
 
   while (1) {

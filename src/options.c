@@ -1,3 +1,4 @@
+#include "error.h"
 #include "options.h"
 
 #include <err.h>
@@ -26,18 +27,13 @@ static void print_help(char *bin_name) {
   printf("\t-m ram, --memory ram    Set guest startup RAM to $ram megabytes.\n");
 }
 
-static void clean_error_exit(int err, char *mes, struct kvm_options *opts) {
-  if (opts != NULL)
-    free_kvm_options(opts);
-  errx(err, "%s", mes);
-}
-
-static void get_additional_args(int argc, char *argv[], struct kvm_options *opts) {
+static int get_additional_args(int argc, char *argv[], struct kvm_options *opts) {
   if (optind < argc) {
     int opt_cnt = argc - optind;
     opts->kernel = malloc((opt_cnt) * sizeof(char*));
     if (opts->kernel == NULL) {
-      clean_error_exit(1, "bzImage already specified in args", opts);
+      kvm_print_error("no argument specified in command line");
+      return -1;
     }
     for (int i = 0; i < opt_cnt; ++i)
       opts->kernel[i] = NULL;
@@ -50,6 +46,7 @@ static void get_additional_args(int argc, char *argv[], struct kvm_options *opts
       }
     }
   }
+  return 0;
 }
 
 static size_t ram_times_unit(size_t nb, size_t unit) {
@@ -124,44 +121,56 @@ struct kvm_options* parse_kvm_options(int argc, char *argv[]) {
         break;
       case 'm':
         opts->ram_size = get_ram_size(optarg);
-        if (opts->ram_size == 0)
-          clean_error_exit(1, "error specifying ram size", opts);
+        if (opts->ram_size == 0) {
+          kvm_print_error("error specifying ram size");
+          return NULL;
+        }
         break;
       case '?':
-        clean_error_exit(1, "unknown option", opts);
+        kvm_print_error("unknown option");
+        return NULL;
     }
   }
 
   if (opts->ram_size == 0)
     opts->ram_size = DEFAULT_RAM_SIZE;
 
-  get_additional_args(argc, argv, opts);
+  if (get_additional_args(argc, argv, opts) < 0)
+    return NULL;
 
   return opts;
 }
 
-void check_args(struct kvm_options *opts, char *argv[]) {
+int check_args(struct kvm_options *opts, char *argv[]) {
   if (opts == NULL) {
-    clean_error_exit(1, "no options specified", opts);
+    kvm_print_error("no options specified");
+    goto err;
   }
 
   if (opts->bz_im == NULL) {
-    clean_error_exit(1, "no bzImage specified", opts);
+    kvm_print_error("no bzImage specified");
+    goto err;
   }
 
   FILE *file = fopen(opts->bz_im, "r+");
   if (file == NULL) {
-    clean_error_exit(1, "bzImage does not exist", opts);
+    kvm_print_error("bzImage does not exist");
+    goto err;
   }
   fclose(file);
 
   if (opts->initrd != NULL) {
     file = fopen(opts->initrd, "r+");
     if (file == NULL) {
-      clean_error_exit(1, "initrd does not exist", opts);
+      kvm_print_error("initrd does not exist");
+      goto err;
     }
     fclose(file);
   }
+  return 0;
+
+err:
+  return -1;
 }
 
 void free_kvm_options(struct kvm_options *opt) {
