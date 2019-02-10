@@ -1,0 +1,35 @@
+# MY-KVM
+## Description
+
+Small tool using the KVM api to boot a linux kernel with minimal support.
+
+## Usage
+
+### Compile
+
+cmake .
+make
+
+### Run
+
+./my-kvm [options] bzImage [kernel_cmd_line]
+
+### Options
+
+Here is a list of supported options.
+
+  --initrd <file>
+  Use the specified file as initramfs. This option is not required, but the
+  kernel will display an error saying that no initial ramdisk could be found.
+
+  --help
+  Display the help and exit.
+
+  -m <mem>
+  Specify the size of the memory to be allocated. The following format must be
+  used : <nb><unit>. With nb beeing an natural number and unit being either "M"
+  or "G". This option is optionnal and the default allocated memory is 1G.
+
+### Example
+
+./my-kvm --initrd rootfs.cpio -m 2G bzImage console=ttyS0 init=/bin/sh
