@@ -15,4 +15,11 @@ add_executable(my-kvm
   src/kvm.c
   src/error.c)
 
-enable_testing()
+add_executable(test
+  src/io.c
+  src/kvm_setup.c
+  src/options.c
+  src/kvm_cpu.c
+  src/kvm.c
+  src/error.c
+  tests/run_tests.c)

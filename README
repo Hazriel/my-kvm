@@ -14,6 +14,11 @@ make
 
 ./my-kvm [options] bzImage [kernel_cmd_line]
 
+### Tests
+
+Tests are built with the my-kvm executable. To run tests, just run it like if it
+was the my-kvm executable with the whole command line.
+
 ### Options
 
 Here is a list of supported options.
